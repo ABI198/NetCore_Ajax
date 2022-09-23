@@ -1,0 +1,128 @@
+﻿
+@{
+    //Layout
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row mt-4">
+    <div id="myTable" class="col-md-6">
+        @*Tablo*@
+    </div>
+    <div id="userDetail" class="col-md-6" style="display:none;">
+        <div class="row">
+            <div class="col-md-6"><img src="#" id="userImage" width="200"/></div>
+            <div class="col-md-6">
+                <input type="hidden" id="kullaniciId" />
+                <div class="mb-3 mt-3">
+                    <label for="fullName" class="form-label">Fullname</label>
+                    <input type="text" class="form-control" id="fullName" placeholder="Fullname" name="fullName">
+                </div>
+                <div class="mb-3 mt-3">
+                    <label for="changeImage" class="form-label">Change Image</label>
+                    <input type="file" class="form-control" id="changeImage" placeholder="Change Image" name="changeImage">
+                </div>
+                <button type="button" id="userUpdate" class="btn btn-primary">Update</button>
+                <button type="button" id="closeUserDetail" class="btn btn-warning">Close</button>
+            </div>
+        </div>
+    </div>
+    <div id="addUser" class="col-md-12">
+        @*Add User*@
+    </div>
+</div>
+
+
+
+
+@section Scripts{
+    <script>
+        $(document).ready(function () {
+            loadAllUsers();
+            closeUserDetailDiv();
+            updateUserDetail();
+        });
+        
+        //Functions
+        function loadAllUsers() {
+            $.ajax({
+                url: '/Home/GetAll',
+                contentType: 'application/json',
+                type: 'Get',
+                dataType: 'json',
+                success: function (data) {
+                    let dataObjectList = jQuery.parseJSON(data);
+                    let table = `<table class="table">
+                                     <thead>
+                                          <tr>
+                                               <th>Id</th>
+                                               <th>Fullname</th>
+                                               <th>ImagePath</th>
+                                               <th>Operation</th>
+                                          </tr>
+                                     </thead>
+                                     <tbody>`;
+                    $.each(dataObjectList, (index, value) => {
+                        table += `<tr>
+                                        <td>${value.Id}</td>
+                                        <td>${value.FullName}</td>
+                                        <td><img src='/img/${value.ImageName}' width="100"></td>
+                                        <td><button type="button" class="btn btn-primary" onclick="getById(${value.Id})">Update User</button></td>
+                                  </tr>`;
+                    });
+                    table += `</tbody></table>`;
+
+                    $("#myTable").html(table);
+                }
+            });
+        }
+
+        function getById(userId) {
+            $.ajax({
+                url: 'Home/GetById',
+                contentType: 'application/json',
+                type: 'Get',
+                dataType: 'json',
+                data: { id: userId },
+                success: function (data) {
+                    let updatedUser = jQuery.parseJSON(data);
+                    $('#fullName').val(updatedUser.FullName);
+                    $('#kullaniciId').val(updatedUser.Id); //We can use userId either.
+                    $('#userImage').attr('src', `/img/${updatedUser.ImageName}`);
+                    $('#userDetail').fadeIn('slow');
+                }
+            });
+        }
+
+        function closeUserDetailDiv() {
+            $('#closeUserDetail').click(function () {
+                $('#userDetail').fadeOut('slow');
+            });
+        }
+
+        function updateUserDetail() {
+            $("#userUpdate").click(function () {
+                let userId = $("#kullaniciId").val();
+                let fullName = $("#fullName").val();
+                let file = $("#changeImage")[0].files[0]; 
+
+                let formData = new FormData(); 
+                formData.append("Id", userId);
+                formData.append("FullName", fullName);
+                if (file != null)
+                    formData.append("File", file, file.fileName); //file.fileName => path
+
+                $.ajax({
+                    url: 'Home/Update',
+                    type: 'Post',
+                    contentType: false,
+                    processData: false,
+                    data: formData,
+                    success: function (data) { 
+                        $('#userDetail').fadeOut('slow');
+                        loadAllUsers(); 
+                    }
+                });
+            });
+        }
+    </script>
+}
